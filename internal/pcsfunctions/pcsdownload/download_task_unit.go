@@ -430,8 +430,7 @@ func (dtu *DownloadTaskUnit) Run() (result *taskframework.TaskUnitRunResult) {
 		if !dtu.Cfg.IsTest { // 测试下载, 不建立空目录
 			os.MkdirAll(dtu.SavePath, 0777) // 首先在本地创建目录, 保证空目录也能被保存
 		}
-
-		filesMap := createFileMap(nil, dtu.SavePath)
+		filesMap := make(map[string]bool)
 		//fmt.Printf("%d",len(files))
 		// 获取该目录下的文件列表
 		fileList, err := dtu.PCS.FilesDirectoriesList(dtu.PcsPath, baidupcs.DefaultOrderOptions)
@@ -448,9 +447,10 @@ func (dtu *DownloadTaskUnit) Run() (result *taskframework.TaskUnitRunResult) {
 			// 添加子任务
 			if !fileList[k].Isdir {
 
+				createFileMap(filesMap, dtu.SavePath)
 				if filesMap[fileList[k].Filename] {
 
-					fmt.Printf("文件已存在跳过: %s\n", fileList[k].Path)
+					//fmt.Printf("文件已存在跳过: %s\n", fileList[k].Path)
 					continue
 				}
 			}
@@ -510,24 +510,23 @@ func (dtu *DownloadTaskUnit) Run() (result *taskframework.TaskUnitRunResult) {
 	result.Succeed = true
 	return
 }
-func createFileMap(filesMap *map[string]bool, dirs string) map[string]bool {
-	if filesMap != nil {
-		return *filesMap
-	}
-	files, _ := ioutil.ReadDir(dirs)
-	newfilesMap := make(map[string]bool, len(files))
-	outfilesMap := make(map[string]bool, len(files))
+func createFileMap(filesMap map[string]bool, dirs string) int {
 
-	for singlefile := range files {
-		sub := strings.Index(files[singlefile].Name(), DownloadSuffix)
-		if sub >= 0 {
-			outfilesMap[files[singlefile].Name()[:sub]] = true
-		} else {
-			newfilesMap[files[singlefile].Name()] = true
+	if len(filesMap) <= 0 {
+		files, _ := ioutil.ReadDir(dirs)
+		outfilesMap := make(map[string]bool, len(files))
+
+		for singlefile := range files {
+			sub := strings.Index(files[singlefile].Name(), DownloadSuffix)
+			if sub >= 0 {
+				outfilesMap[files[singlefile].Name()[:sub]] = true
+			} else {
+				filesMap[files[singlefile].Name()] = true
+			}
+		}
+		for index := range outfilesMap {
+			delete(filesMap, index)
 		}
 	}
-	for index := range outfilesMap {
-		delete(newfilesMap, index)
-	}
-	return newfilesMap
+	return len(filesMap)
 }
