@@ -15,6 +15,7 @@ import (
 	"github.com/iikira/BaiduPCS-Go/requester/downloader"
 	"github.com/iikira/BaiduPCS-Go/requester/transfer"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -143,7 +144,7 @@ func (dtu *DownloadTaskUnit) download(downloadURL string, client *requester.HTTP
 		if dtu.IsPrintStatus {
 			// 输出所有的worker状态
 			var (
-				tb      = pcstable.NewTable(builder)
+				tb = pcstable.NewTable(builder)
 			)
 			tb.SetHeader([]string{"#", "status", "range", "left", "speeds", "error"})
 			workersCallback(func(key int, worker *downloader.Worker) bool {
@@ -166,7 +167,7 @@ func (dtu *DownloadTaskUnit) download(downloadURL string, client *requester.HTTP
 			leftStr = left.String()
 		}
 
-		fmt.Fprintf(builder,dtu.PrintFormat, dtu.taskInfo.Id(),
+		fmt.Fprintf(builder, dtu.PrintFormat, dtu.taskInfo.Id(),
 			converter.ConvertFileSize(status.Downloaded(), 2),
 			converter.ConvertFileSize(status.TotalSize(), 2),
 			converter.ConvertFileSize(status.SpeedsPerSecond(), 2),
@@ -430,6 +431,8 @@ func (dtu *DownloadTaskUnit) Run() (result *taskframework.TaskUnitRunResult) {
 			os.MkdirAll(dtu.SavePath, 0777) // 首先在本地创建目录, 保证空目录也能被保存
 		}
 
+		filesMap := createFileMap(nil, dtu.SavePath)
+		//fmt.Printf("%d",len(files))
 		// 获取该目录下的文件列表
 		fileList, err := dtu.PCS.FilesDirectoriesList(dtu.PcsPath, baidupcs.DefaultOrderOptions)
 		if err != nil {
@@ -440,7 +443,17 @@ func (dtu *DownloadTaskUnit) Run() (result *taskframework.TaskUnitRunResult) {
 		}
 
 		for k := range fileList {
+
+			//if k.
 			// 添加子任务
+			if !fileList[k].Isdir {
+
+				if filesMap[fileList[k].Filename] {
+
+					fmt.Printf("文件已存在跳过: %s\n", fileList[k].Path)
+					continue
+				}
+			}
 			subUnit := *dtu
 			newCfg := *dtu.Cfg
 			subUnit.Cfg = &newCfg
@@ -496,4 +509,25 @@ func (dtu *DownloadTaskUnit) Run() (result *taskframework.TaskUnitRunResult) {
 	// 下载成功
 	result.Succeed = true
 	return
+}
+func createFileMap(filesMap *map[string]bool, dirs string) map[string]bool {
+	if filesMap != nil {
+		return *filesMap
+	}
+	files, _ := ioutil.ReadDir(dirs)
+	newfilesMap := make(map[string]bool, len(files))
+	outfilesMap := make(map[string]bool, len(files))
+
+	for singlefile := range files {
+		sub := strings.Index(files[singlefile].Name(), DownloadSuffix)
+		if sub >= 0 {
+			outfilesMap[files[singlefile].Name()[:sub]] = true
+		} else {
+			newfilesMap[files[singlefile].Name()] = true
+		}
+	}
+	for index := range outfilesMap {
+		delete(newfilesMap, index)
+	}
+	return newfilesMap
 }
