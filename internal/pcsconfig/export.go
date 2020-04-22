@@ -3,14 +3,12 @@ package pcsconfig
 import (
 	"fmt"
 	"github.com/iikira/BaiduPCS-Go/baidupcs"
-	"github.com/iikira/BaiduPCS-Go/baidupcs/dlinkclient"
 	"github.com/iikira/BaiduPCS-Go/pcstable"
 	"github.com/iikira/BaiduPCS-Go/pcsutil/converter"
 	"github.com/iikira/BaiduPCS-Go/requester"
 	"github.com/olekukonko/tablewriter"
 	"os"
 	"strconv"
-	"time"
 )
 
 // ActiveUser 获取当前登录的用户
@@ -51,18 +49,6 @@ func (c *PCSConfig) PanHTTPClient() *requester.HTTPClient {
 	return c.httpClientWithUA(c.PanUA)
 }
 
-// DlinkClient 返回设置好的DlinkClient
-func (c *PCSConfig) DlinkClient() *dlinkclient.DlinkClient {
-	if c.dc == nil {
-		dc := dlinkclient.NewDlinkClient()
-		client := c.PanHTTPClient()
-		client.SetResponseHeaderTimeout(30 * time.Second)
-		dc.SetClient(client)
-		c.dc = dc
-	}
-	return c.dc
-}
-
 // NumLogins 获取登录的用户数量
 func (c *PCSConfig) NumLogins() int {
 	return len(c.BaiduUserList)
@@ -82,7 +68,7 @@ func (c *PCSConfig) PrintTable() {
 	tb.AppendBulk([][]string{
 		[]string{"appid", fmt.Sprint(c.AppID), "", "百度 PCS 应用ID"},
 		[]string{"cache_size", converter.ConvertFileSize(int64(c.CacheSize), 2), "1KB ~ 256KB", "下载缓存, 如果硬盘占用高或下载速度慢, 请尝试调大此值"},
-		[]string{"max_parallel", strconv.Itoa(c.MaxParallel), "50 ~ 500", "下载最大并发量"},
+		[]string{"max_parallel", strconv.Itoa(c.MaxParallel), "1 ~ 64", "下载最大并发量"},
 		[]string{"max_upload_parallel", strconv.Itoa(c.MaxUploadParallel), "1 ~ 100", "上传最大并发量"},
 		[]string{"max_download_load", strconv.Itoa(c.MaxDownloadLoad), "1 ~ 5", "同时进行下载文件的最大数量"},
 		[]string{"max_download_rate", showMaxRate(c.MaxDownloadRate), "", "限制最大下载速度, 0代表不限制"},

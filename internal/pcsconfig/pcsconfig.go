@@ -3,7 +3,6 @@ package pcsconfig
 
 import (
 	"github.com/iikira/BaiduPCS-Go/baidupcs"
-	"github.com/iikira/BaiduPCS-Go/baidupcs/dlinkclient"
 	"github.com/iikira/BaiduPCS-Go/pcsutil"
 	"github.com/iikira/BaiduPCS-Go/pcsutil/jsonhelper"
 	"github.com/iikira/BaiduPCS-Go/pcsverbose"
@@ -59,7 +58,6 @@ type PCSConfig struct {
 	fileMu         sync.Mutex
 	activeUser     *Baidu
 	pcs            *baidupcs.BaiduPCS
-	dc             *dlinkclient.DlinkClient
 }
 
 // NewConfig 返回 PCSConfig 指针对象
@@ -222,7 +220,7 @@ func (c *PCSConfig) loadConfigFromFile() (err error) {
 func (c *PCSConfig) initDefaultConfig() {
 	c.AppID = 266719
 	c.CacheSize = 65536
-	c.MaxParallel = 8
+	c.MaxParallel = 1
 	c.MaxUploadParallel = 8
 	c.MaxDownloadLoad = 1
 	c.UserAgent = requester.UserAgent
