@@ -430,10 +430,10 @@ func (dtu *DownloadTaskUnit) Run() (result *taskframework.TaskUnitRunResult) {
 		if !dtu.Cfg.IsTest { // 测试下载, 不建立空目录
 			os.MkdirAll(dtu.SavePath, 0777) // 首先在本地创建目录, 保证空目录也能被保存
 		}
-		filesMap := make(map[string]bool)
-		//fmt.Printf("%d",len(files))
+
 		// 获取该目录下的文件列表
 		fileList, err := dtu.PCS.FilesDirectoriesList(dtu.PcsPath, baidupcs.DefaultOrderOptions)
+
 		if err != nil {
 			result.ResultMessage = "获取目录信息错误"
 			result.Err = err
@@ -441,15 +441,18 @@ func (dtu *DownloadTaskUnit) Run() (result *taskframework.TaskUnitRunResult) {
 			return
 		}
 
+		filesMap := make(map[string]bool, len(fileList))
+		isOk := false //每个目录仅需要刷新一次目录map
 		for k := range fileList {
 
 			//if k.
 			// 添加子任务
+			//当子文件不为文件夹且目录中存在此文件时跳过插入下载队列逻辑
 			if !fileList[k].Isdir {
-
-				createFileMap(filesMap, dtu.SavePath)
+				if !isOk {
+					createFileMap(&filesMap, dtu.SavePath, &isOk)
+				}
 				if filesMap[fileList[k].Filename] {
-
 					//fmt.Printf("文件已存在跳过: %s\n", fileList[k].Path)
 					continue
 				}
@@ -510,8 +513,9 @@ func (dtu *DownloadTaskUnit) Run() (result *taskframework.TaskUnitRunResult) {
 	result.Succeed = true
 	return
 }
-func createFileMap(filesMap map[string]bool, dirs string) int {
+func createFileMap(fMap *map[string]bool, dirs string, isOk *bool) bool {
 
+	filesMap := *fMap
 	if len(filesMap) <= 0 {
 		files, _ := ioutil.ReadDir(dirs)
 		outfilesMap := make(map[string]bool, len(files))
@@ -528,5 +532,6 @@ func createFileMap(filesMap map[string]bool, dirs string) int {
 			delete(filesMap, index)
 		}
 	}
-	return len(filesMap)
+	*isOk = true
+	return true
 }
