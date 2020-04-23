@@ -132,6 +132,7 @@ func RunDownload(paths []string, options *DownloadOptions) {
 		}
 		statistic = &pcsdownload.DownloadStatistic{}
 	)
+	executor.SetParallel(pcsconfig.Config.MaxDownloadLoad)
 	// 处理队列
 	for k := range paths {
 		newCfg := *cfg
